@@ -1,0 +1,30 @@
+ARG IMAGE
+FROM ${IMAGE}
+
+RUN dpkg --add-architecture arm64
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  crossbuild-essential-arm64 \
+  zip \
+  unzip \
+  curl \
+  wget \
+  git \
+  tree \
+  vim \
+  sudo \
+  python3-all \
+  python3-numpy \
+  ca-certificates \
+  software-properties-common \
+  libopencv-core-dev:arm64 \
+  libopencv-imgproc-dev:arm64 \
+  libopencv-video-dev:arm64 \
+  libopencv-highgui-dev:arm64 \
+  libopencv-videoio-dev:arm64 \
+  libopencv-contrib-dev:arm64
+
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 3
+
+RUN wget -O /usr/bin/bazel \
+         https://github.com/bazelbuild/bazelisk/releases/download/v1.10.0/bazelisk-linux-$(dpkg --print-architecture) && \
+    chmod +x /usr/bin/bazel

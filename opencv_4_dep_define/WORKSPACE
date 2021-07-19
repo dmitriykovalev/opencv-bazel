@@ -1,0 +1,8 @@
+workspace(name = "opencv")
+
+# opecv4
+new_local_repository(
+    name = "opencv_linux",
+    path = "/usr/include",
+    build_file = "@//:opencv_linux.BUILD"
+)

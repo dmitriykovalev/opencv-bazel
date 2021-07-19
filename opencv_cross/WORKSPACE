@@ -1,0 +1,67 @@
+workspace(name = "opencv")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# coral_crosstool
+http_archive(
+    name = "coral_crosstool",
+    sha256 = "38cb4da13009d07ebc2fed4a9d055b0f914191b344dd2d1ca5803096343958b4",
+    strip_prefix = "crosstool-6bcc2261d9fc60dff386b557428d98917f0af491",
+    urls = [
+        "https://github.com/google-coral/crosstool/archive/6bcc2261d9fc60dff386b557428d98917f0af491.tar.gz",
+    ],
+)
+
+load("@coral_crosstool//:configure.bzl", "cc_crosstool")
+cc_crosstool(name = "crosstool")
+
+# opencv_linux
+new_local_repository(
+    name = "opencv_linux",
+    path = "/usr/include",
+    build_file_content = """
+config_setting(
+  name = "x86_64-linux-gnu",
+  values = {"cpu": "k8"},
+)
+
+config_setting(
+  name = "aarch64-linux-gnu",
+  values = {"cpu": "aarch64"},
+)
+
+config_setting(
+  name = "arm-linux-gnueabihf",
+  values = {"cpu": "armv7a"},
+)
+
+cc_library(
+  name = "opencv",
+  hdrs = glob([
+      "opencv4/opencv2/**/*.h*",
+  ]) + select({
+    ":x86_64-linux-gnu":    glob(["x86_64-linux-gnu/opencv4/opencv2/*.h*"]),
+    ":aarch64-linux-gnu":   glob(["aarch64-linux-gnu/opencv4/opencv2/*.h*"]),
+    ":arm-linux-gnueabihf": glob(["arm-linux-gnueabihf/opencv4/opencv2/*.h*"]),
+  }, no_match_error = "Invalid configuration"),
+  includes = [
+      "opencv4",
+  ] + select({
+    ":x86_64-linux-gnu":    ["x86_64-linux-gnu/opencv4"],
+    ":aarch64-linux-gnu":   ["aarch64-linux-gnu/opencv4"],
+    ":arm-linux-gnueabihf": ["arm-linux-gnueabihf/opencv4"],
+  }, no_match_error = "Invalid configuration"),
+  linkopts = [
+    "-l:libopencv_core.so",
+    "-l:libopencv_calib3d.so",
+    "-l:libopencv_features2d.so",
+    "-l:libopencv_highgui.so",
+    "-l:libopencv_imgcodecs.so",
+    "-l:libopencv_imgproc.so",
+    "-l:libopencv_video.so",
+    "-l:libopencv_videoio.so",
+  ],
+  visibility = ["//visibility:public"],
+)
+"""
+)
