@@ -1,6 +1,6 @@
-# Compile and cross-compile OpenCV projects using Bazel on Linux
+# Build OpenCV projects using Bazel on Linux
 
-## OpenCV Package Structure
+## OpenCV Packages
 
 Many Linux distributions have OpenCV packages. Debian-based ones:
 
@@ -14,7 +14,7 @@ Ubuntu 18.04 LTS     | 3.2
 Ubuntu 20.04 LTS     | 4.2
 Ubuntu 21.04         | 4.5
 
-Install OpenCV library:
+Install OpenCV:
 ```bash
 sudo apt-get install -y \
   libopencv-core-dev \
@@ -55,7 +55,7 @@ Inspect a list of default GCC library directories:
 gcc -print-search-dirs | grep 'libraries:'
 ```
 
-### OpenCV 2/3 Structure
+### OpenCV 2/3 Packages
 
 Header files are installed to `/usr/include/opencv2/`. `/usr/include` is a
 default include directory (`-I` flag is not needed).
@@ -91,7 +91,7 @@ Pay attention that sometimes (e.g. manual compilation) OpenCV
 libraries can go to `/usr/local/lib`. This is not a default library directory
 for the compiler! You have to pass `-L/usr/local/lib` explicitly in this case.
 
-### OpneCV 4 Structure
+### OpneCV 4 Packages
 
 Header files are installed to `/usr/include/opencv4/opencv2` and
 `/usr/include/<multiarch>/opencv4/opencv2`. Pass additional include directories
@@ -103,7 +103,7 @@ to the compiler:
 
 Library files are installed at the same location as for OpenCV 2/3.
 
-## Bazel Integration
+## Bazel Compilation
 
 Pass any compiler flag to Bazel using `--copt=<option>` and linker flag by
 using`--linkopt=<option>`.
@@ -191,41 +191,34 @@ cc_library(
 )
 ```
 
-The tricky part here is a triplet `x86_64-linux-gnu` which can be different for
-cross-compilation. That can be done differently depending on the context.
+The tricky part here is a multiarch `x86_64-linux-gnu` value which can be
+different for cross-compilation.
 
-## Docker Build
+## Bazel Cross-Compilation
 
-Get docker container with OpenCV 3 installed:
+Cross-compilation is done using
+[crosstool](https://github.com/google-coral/crosstool) project. Corresponding
+dependency should be added to the [`WORKSPACE`](opencv_cross/WORKSPACE) file.
+
+Pass `--crosstool_top`, `--compiler`, and `--cpu` to cross-compile:
 ```bash
-DOCKER_IMAGE=debian:buster ./docker.sh
-```
+# Cross-compile to arm64
+bazel build --crosstool_top=@crosstool//:toolchains \
+            --compiler=gcc \
+            --cpu=aarch64 \
+            <bazel-target>
 
-Get docker container with OpenCV 4 installed:
-```bash
-DOCKER_IMAGE=debian:bullseye ./docker.sh
-```
-
-Get docker container for cross-compiling OpenCV 4 to
-[armhf](docker/Dockerfile.armhf) (e.g. [Raspberry Pi](https://www.raspberrypi.org/products/)):
-```bash
-DOCKER_IMAGE=debian:bullseye DOCKER_FILE=docker/Dockerfile.armhf ./docker.sh
-container$ cd opencv_cross
-container$ make build-armhf
-```
-
-Get docker container for cross-compiling OpenCV 4 to
-[arm64](docker/Dockerfile.arm64) (e.g. [Coral Dev Board](https://coral.ai/products/dev-board/)):
-```bash
-DOCKER_IMAGE=debian:bullseye DOCKER_FILE=docker/Dockerfile.arm64 ./docker.sh
-container$ cd opencv_cross
-container$ make build-arm64
+# Cross-compile to armhf
+bazel build --crosstool_top=@crosstool//:toolchains \
+            --compiler=gcc \
+            --cpu=armv7a \
+            <bazel-target>
 ```
 
 Mapping between arch/multiarch and Bazel:
 
-arch  | multiarch          | Bazel `--cpu` | Bazel `--cpu` + [crosstool]
-------|--------------------|---------------|----------------------------
+arch  | multiarch          | Bazel `--cpu` | Bazel `--cpu` + crosstool
+------|--------------------|---------------|--------------------------
 amd64 |x86_64-linux-gnu    | k8            | k8
 arm64 |aarch64-linux-gnu   | aarch64       | aarch64
 armhf |arm-linux-gnueabihf | N/A           | armv7a
@@ -241,4 +234,35 @@ dpkg-architecture -qDEB_HOST_MULTIARCH
 gcc -print-multiarch
 ```
 
-[crosstool]: https://github.com/google-coral/crosstool
+## Docker Environment
+
+Get docker container shell with OpenCV 3 installed:
+```bash
+DOCKER_IMAGE=debian:buster ./docker.sh
+```
+
+Get docker container shell with OpenCV 4 installed:
+```bash
+DOCKER_IMAGE=debian:bullseye ./docker.sh
+```
+
+Get docker container shell for cross-compiling OpenCV 4 to
+[armhf](docker/Dockerfile.armhf) (e.g. [Raspberry Pi](https://www.raspberrypi.org/products/)):
+```bash
+DOCKER_IMAGE=debian:bullseye DOCKER_FILE=docker/Dockerfile.armhf ./docker.sh
+container$ cd opencv_cross
+container$ make build-armhf
+```
+
+Get docker container shell for cross-compiling OpenCV 4 to
+[arm64](docker/Dockerfile.arm64) (e.g. [Coral Dev Board](https://coral.ai/products/dev-board/)):
+```bash
+DOCKER_IMAGE=debian:bullseye DOCKER_FILE=docker/Dockerfile.arm64 ./docker.sh
+container$ cd opencv_cross
+container$ make build-arm64
+```
+
+Run commands directly in the container by passing arguments to `docker.sh`:
+```bash
+DOCKER_IMAGE=debian:bullseye ./docker.sh dpkg -L libopencv-core-dev
+```
