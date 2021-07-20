@@ -1,4 +1,4 @@
-# Bazel is only available for amd64 and arm64 only.
+# Bazel is only available for amd64 and arm64.
 
 config_setting(
   name = "x86_64-linux-gnu",

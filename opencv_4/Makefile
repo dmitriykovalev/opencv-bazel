@@ -1,6 +1,5 @@
 .PHONY: build clean
 
-# https://wiki.debian.org/Multiarch/Tuples
 build:
 	bazel build --copt=-I/usr/include/opencv4 \
 	            --copt=-I/usr/include/$(shell gcc -print-multiarch)/opencv4 \
