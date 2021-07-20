@@ -2,6 +2,8 @@
 
 ## OpenCV Package Structure
 
+Many Linux distributions have OpenCV packages. Debian-based ones:
+
 OS                   | OpenCV
 -------------------- | ------
 Debian 9 (stretch)   | 2.4
@@ -9,7 +11,6 @@ Debian 10 (buster)   | 3.2
 Debian 11 (bullseye) | 4.5
 Ubuntu 16.04 LTS     | 2.4
 Ubuntu 18.04 LTS     | 3.2
-Ubuntu 20.04 LTS     | 4.2
 Ubuntu 20.04 LTS     | 4.2
 Ubuntu 21.04         | 4.5
 
@@ -93,7 +94,7 @@ for the compiler! You have to pass `-L/usr/local/lib` explicitly in this case.
 ### OpneCV 4 Structure
 
 Header files are installed to `/usr/include/opencv4/opencv2` and
-`/usr/include/<triplet>/opencv4/opencv2`. Pass additional include directories
+`/usr/include/<multiarch>/opencv4/opencv2`. Pass additional include directories
 to the compiler:
   ```bash
 -I/usr/include/opencv4/
@@ -193,28 +194,51 @@ cc_library(
 The tricky part here is a triplet `x86_64-linux-gnu` which can be different for
 cross-compilation. That can be done differently depending on the context.
 
-## Test
+## Docker Build
 
 Get docker container with OpenCV 3 installed:
-```
+```bash
 DOCKER_IMAGE=debian:buster ./docker.sh
 ```
 
 Get docker container with OpenCV 4 installed:
-```
+```bash
 DOCKER_IMAGE=debian:bullseye ./docker.sh
 ```
 
-Get docker container for cross-compiling OpenCV 4 to armhf (e.g. Raspberry Pi):
-```
+Get docker container for cross-compiling OpenCV 4 to
+[armhf](docker/Dockerfile.armhf) (e.g. [Raspberry Pi](https://www.raspberrypi.org/products/)):
+```bash
 DOCKER_IMAGE=debian:bullseye DOCKER_FILE=docker/Dockerfile.armhf ./docker.sh
 container$ cd opencv_cross
 container$ make build-armhf
 ```
 
-Get docker container for cross-compiling OpenCV 4 to arm64 (e.g. Coral Dev Board):
-```
+Get docker container for cross-compiling OpenCV 4 to
+[arm64](docker/Dockerfile.arm64) (e.g. [Coral Dev Board](https://coral.ai/products/dev-board/)):
+```bash
 DOCKER_IMAGE=debian:bullseye DOCKER_FILE=docker/Dockerfile.arm64 ./docker.sh
 container$ cd opencv_cross
 container$ make build-arm64
 ```
+
+Mapping between arch/multiarch and Bazel:
+
+arch  | multiarch          | Bazel `--cpu` | Bazel `--cpu` + [crosstool]
+------|--------------------|---------------|----------------------------
+amd64 |x86_64-linux-gnu    | k8            | k8
+arm64 |aarch64-linux-gnu   | aarch64       | aarch64
+armhf |arm-linux-gnueabihf | N/A           | armv7a
+
+Get `arch` value:
+```bash
+dpkg --print-architecture
+```
+
+Get `multiarch` value:
+```bash
+dpkg-architecture -qDEB_HOST_MULTIARCH
+gcc -print-multiarch
+```
+
+[crosstool]: https://github.com/google-coral/crosstool
